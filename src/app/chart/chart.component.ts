@@ -12,11 +12,13 @@ export class ChartComponent implements OnInit, OnChanges {
   @ViewChild('graph')
   Graph: ElementRef;
 
+  colors = ['red', 'blue', 'teal', 'hotpink']
+
   data: Data = {
     nodes: [
       { id: 1, cluster: 1, title: "Node 1" },
       { id: 2, cluster: 2, title: "Node 2" },
-      { id: 3, cluster: 1, title: "Node 3" },
+      { id: 3, cluster: 3, title: "Node 3" },
     ],
     links: [
       { source: 1, target: 2, value: 0.5 },
@@ -38,8 +40,6 @@ export class ChartComponent implements OnInit, OnChanges {
   nodesElements;
 
   ts500;
-  grow;
-
 
   constructor() {}
 
@@ -112,6 +112,32 @@ export class ChartComponent implements OnInit, OnChanges {
     this.updateSimulation()
   }
 
+  selectNode(selNode) {
+    console.log(selNode)
+    const neighbours = this.getFirstLevelNeighbours(selNode);
+    console.log(neighbours)
+
+    this.nodesElements
+      .attr('opacity', d => neighbours.indexOf(d.id) > -1 ? 1 : 0.5)
+    this.linkElements
+      .attr('stroke', d => this.isNeighbourLink(selNode, d) ? 'black': '#eee')
+  }
+
+  getFirstLevelNeighbours(node) {
+    return this.data.links.reduce((neighbours, link) => {
+      if (link.target.id === node.id) {
+        neighbours.push(link.source.id);
+      } else if(link.source.id === node.id) {
+        neighbours.push(link.target.id)
+      }
+      return neighbours
+    }, [node.id])
+  }
+
+  isNeighbourLink(node, link) {
+    return link.source.id === node.id || link.target.id === node.id;
+  }
+
   updateGraph() {
     // SELECTING LINK ELEMENTS PRESENT IN THE GROUP
     // ----------------------------------------
@@ -133,7 +159,7 @@ export class ChartComponent implements OnInit, OnChanges {
       .join(
         enter =>
           enter.append('circle')
-            .attr('fill', d => d.cluster === 1 ? 'teal': 'hotpink')
+            .attr('fill', d => this.getNodeColor(d))
             .attr('stroke', 'white')
             .attr('r', 5)
             .call(enter =>
@@ -148,12 +174,17 @@ export class ChartComponent implements OnInit, OnChanges {
         update =>
           update
             .attr('r', 5)
-            .attr('fill', d => d.cluster === 1 ? 'teal': 'hotpink'),
+            .attr('fill', d => this.getNodeColor(d)),
         exit =>
           exit.remove()
       )
       .attr('stroke-width', 2)
       .call(this.dragDrop)
+      .on('click', d => this.selectNode(d))
+  }
+
+  getNodeColor(node) {
+    return this.colors[   node.cluster]
   }
 
   updateSimulation() {
@@ -175,55 +206,6 @@ export class ChartComponent implements OnInit, OnChanges {
     this.simulation.force('link').links(this.data.links)
     this.simulation.alphaTarget(0.7).restart()
   }
-
-  // updateGraph2() {
-  //
-  //   console.log(this.data)
-  //
-  //   this.link.selectAll('line')
-  //     .data(this.data.links)
-  //     .join(
-  //       enter =>
-  //         enter.append('line')
-  //         .attr('x1', d => d.source.x)
-  //         .attr('y1', d => d.source.y)
-  //         .attr('x2', d => d.target.x)
-  //         .attr('y2', d => d.target.y)
-  //         .attr('stroke', 'hotpink'),
-  //       update =>
-  //         update
-  //           .attr('x1', d => d.source.x)
-  //           .attr('y1', d => d.source.y)
-  //           .attr('x2', d => d.target.x)
-  //           .attr('y2', d => d.target.y),
-  //     )
-  //
-  //   this.node.selectAll('circle')
-  //     .data(this.data.nodes)
-  //     .join(
-  //       enter =>
-  //         enter.append('circle')
-  //           .attr('r', 5)
-  //           .attr('fill', 'teal'),
-  //       update =>
-  //         update
-  //           .attr('cx', d => d.x)
-  //           .attr('cy', d => d.y),
-  //     )
-  //
-  //   this.simulation.on('tick', () => {
-  //     this.link
-  //       .attr('x1', d => d.source.x)
-  //       .attr('y1', d => d.source.y)
-  //       .attr('x2', d => d.target.x)
-  //       .attr('y2', d => d.target.y)
-  //
-  //     this.node
-  //       .attr('cx', d => d.x)
-  //       .attr('cy', d => d.y)
-  //   })
-  //   return this.svg.node()
-  // }
 
   addNewLink() {
     this.i += 1;
@@ -247,7 +229,6 @@ export class ChartComponent implements OnInit, OnChanges {
     }
 
     this.updateSimulation()
-    // this.updateGraph()
   }
 
 }

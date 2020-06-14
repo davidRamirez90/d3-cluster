@@ -5,8 +5,8 @@ export interface Node {
 }
 
 export interface Link {
-  source: number;
-  target: number;
+  source: any;
+  target: any;
   value: number;
 }
 
